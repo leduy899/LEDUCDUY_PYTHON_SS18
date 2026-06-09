@@ -1,210 +1,200 @@
-import sys
+fleet_list = []
 
-student_list = []
-
-def calculate_average_score(toan, ly, hoa):#Tính average score 
-    return round((toan + ly + hoa) / 3, 2)
-
-def classify_academic_performance(dtb):#phân loại học lực
-    if dtb < 5.0:
-        return "Yếu"
-    elif 5.0 <= dtb < 7.0:
-        return "Trung bình"
-    elif 7.0 <= dtb < 8.0:
-        return "Khá"
+def get_status(difference):
+    if difference < 0:
+        return "Tiet kiem"
+    elif 0 <= difference < 2:
+        return "Tieu chuan"
+    elif 2 <= difference < 8:
+        return "Tieu hao cao"
     else:
-        return "Giỏi"
+        return "Qua tai / That thoat"
 
-def input_non_empty_string(prompt):# Hàm Check rỗng input
+def is_id_exist(vehicle_id):
+    for vehicle in fleet_list:
+        if vehicle["vehicle_id"] == vehicle_id:
+            return True
+    return False
+
+def get_valid_string(prompt):
     while True:
         value = input(prompt).strip()
-        if value:
+        if value == "":
+            print("Loi: Khong duoc de trong. Vui long nhap lai.")
+        else:
             return value
-        print("Lỗi: Giá trị không được để trống. Vui lòng nhập lại.")
 
-def input_valid_score(subject_name):
-    """Đảm bảo người dùng nhập điểm là số hợp lệ từ 0 đến 10."""
+def get_valid_float(prompt, require_positive=False, require_non_negative=False):
     while True:
         try:
-            score = float(input(f"Nhập điểm môn {subject_name} (0 - 10): "))
-            if 0 <= score <= 10:
-                return score
-            else:
-                print("Lỗi: Điểm phải nằm trong khoảng từ 0 đến 10. Vui lòng nhập lại.")
+            value = float(input(prompt))
+            if require_positive and value <= 0:
+                print("Loi: Gia tri phai lon hon 0. Vui long nhap lai.")
+                continue
+            if require_non_negative and value < 0:
+                print("Loi: Gia tri phai lon hon hoac bang 0. Vui long nhap lai.")
+                continue
+            return value
         except ValueError:
-            print("Lỗi: Dữ liệu không hợp lệ. Vui lòng nhập một số.")
+            print("Loi: Sai dinh dang so. Vui long nhap lai.")
 
-def find_student_index(student_id):#Hàm tìm index của student trong list
-    for i, sv in enumerate(student_list):
-        if sv["MaSV"].lower() == student_id.lower():
-            return i
-    return -1
-
-def print_table_header():#In table header cho bảng 
-    print(f"{'Mã SV':<10} | {'Họ và tên':<20} | {'Toán':<5} | {'Lý':<5} | {'Hóa':<5} | {'Điểm TB':<7} | {'Xếp loại':<12}")
-    print("-" * 75)
-
-def print_student_info(sv):# In student_info theo bảng
-    print(f"{sv['MaSV']:<10} | {sv['HoTen']:<20} | {sv['Toan']:<5} | {sv['Ly']:<5} | {sv['Hoa']:<5} | {sv['DTB']:<7} | {sv['XepLoai']:<12}")
-
-# 1. Hiển thị danh sách sinh viên
-def display_student_list(custom_list=None):
-    current_list = custom_list if custom_list is not None else student_list
-
-    if not current_list:
-        print("\nDanh sách sinh viên hiện đang trống.")
+def display_vehicles():
+    if len(fleet_list) == 0:
+        print("\nDanh sach doi xe hien dang trong.")
         return
+    
+    print("\n" + "-" * 115)
+    print(f"| {'Ma XE':<10} | {'Bien so (Tai xe)':<25} | {'Dinh muc':<10} | {'So km':<10} | {'Nhien lieu':<12} | {'Chenh lech':<12} | {'Trang thai':<20} |")
+    print("-" * 115)
+    
+    for vehicle in fleet_list:
+        print(f"| {vehicle['vehicle_id']:<10} | {vehicle['driver_plate']:<25} | {vehicle['norm']:<10.2f} | {vehicle['distance']:<10.2f} | {vehicle['fuel']:<12.2f} | {vehicle['difference']:<12.2f} | {vehicle['status']:<20} |")
+    print("-" * 115)
 
-    print("\n--- DANH SÁCH SINH VIÊN ---")
-    print_table_header()
-    for sv in current_list:
-        print_student_info(sv)
-    print("-" * 75)
-
-# 2. Tiếp nhận sinh viên
-def add_new_student():
-    print("\n--- TIẾP NHẬN SINH VIÊN MỚI ---")
+def add_vehicle():
+    print("\n--- BO SUNG XE MOI VAO DOI ---")
     while True:
-        student_id = input_non_empty_string("Nhập mã sinh viên: ")
-        if find_student_index(student_id) != -1:
-            print("Lỗi: Mã sinh viên đã tồn tại. Vui lòng nhập mã khác.")
+        vehicle_id = get_valid_string("Nhap ma dinh danh phuong tien: ")
+        if is_id_exist(vehicle_id):
+            print("Loi: Ma phuong tien nay da ton tai trong he thong.")
         else:
             break
+            
+    driver_plate = get_valid_string("Nhap Bien so xe / Ten tai xe: ")
+    norm = get_valid_float("Nhap Dinh muc ly thuyet (Lit/100km): ", require_positive=True)
+    distance = get_valid_float("Nhap Tong so km da di chuyen: ", require_non_negative=True)
+    fuel = get_valid_float("Nhap Tong so nhien lieu tieu thu (Lit): ", require_non_negative=True)
 
-    full_name = input_non_empty_string("Nhập họ và tên sinh viên: ")
-    toan = input_valid_score("Toán")
-    ly = input_valid_score("Lý")
-    hoa = input_valid_score("Hóa")
+    theory_fuel = (distance * norm) / 100.0
+    difference = fuel - theory_fuel
+    status = get_status(difference)
 
-    dtb = calculate_average_score(toan, ly, hoa)
-    classification = classify_academic_performance(dtb)
+    vehicle_info = {
+        "vehicle_id": vehicle_id,
+        "driver_plate": driver_plate,
+        "norm": norm,
+        "distance": distance,
+        "fuel": fuel,
+        "difference": difference,
+        "status": status
+    }
+    fleet_list.append(vehicle_info)
+    print("\nThem phuong tien moi thanh cong!")
 
-    new_student = {
-        "MaSV": student_id,
-        "HoTen": full_name,
-        "Toan": toan,
-        "Ly": ly,
-        "Hoa": hoa,
-        "DTB": dtb,
-        "XepLoai": classification
+def update_log():
+    print("\n--- CAP NHAT NHAT KY HANH TRINH ---")
+    vehicle_id = input("Nhap ma phuong tien can cap nhat: ").strip()
+    
+    for vehicle in fleet_list:
+        if vehicle["vehicle_id"] == vehicle_id:
+            new_norm = get_valid_float("Nhap lai Dinh muc ly thuyet (Lit/100km): ", require_positive=True)
+            new_distance = get_valid_float("Nhap Tong so km da di chuyen moi: ", require_non_negative=True)
+            new_fuel = get_valid_float("Nhap Tong so nhien lieu tieu thu thuc te moi: ", require_non_negative=True)
+
+            theory_fuel = (new_distance * new_norm) / 100.0
+            new_difference = new_fuel - theory_fuel
+            new_status = get_status(new_difference)
+
+            vehicle["norm"] = new_norm
+            vehicle["distance"] = new_distance
+            vehicle["fuel"] = new_fuel
+            vehicle["difference"] = new_difference
+            vehicle["status"] = new_status
+            
+            print("\nCap nhat nhat ky thanh cong!")
+            return
+            
+    print("\nLoi: Khong tim thay phuong tien mang ma nay.")
+
+def delete_vehicle():
+    print("\n--- XOA XE KHOI DOI QUAN LY ---")
+    vehicle_id = input("Nhap ma phuong tien can xoa: ").strip()
+    
+    for index in range(len(fleet_list)):
+        if fleet_list[index]["vehicle_id"] == vehicle_id:
+            confirm = input("Ban co chac muon xoa phuong tien nay khoi doi xe khong? (Y/N): ").strip().upper()
+            if confirm == "Y":
+                del fleet_list[index]
+                print("\nXoa phuong tien thanh cong!")
+            else:
+                print("\nDa huy thao tac xoa.")
+            return
+            
+    print("\nLoi: Khong tim thay phuong tien mang ma nay.")
+
+def search_vehicle():
+    print("\n--- TIM KIEM PHUONG TIEN ---")
+    keyword = input("Nhap ma xe, bien so hoac ten tai xe de tim: ").strip().lower()
+    search_results = []
+    
+    for vehicle in fleet_list:
+        if keyword == vehicle["vehicle_id"].lower() or keyword in vehicle["driver_plate"].lower():
+            search_results.append(vehicle)
+
+    if len(search_results) == 0:
+        print("\nKhong tim thay phuong tien nao phu hop voi tu khoa.")
+    else:
+        print("\n" + "-" * 115)
+        print(f"| {'Ma XE':<10} | {'Bien so (Tai xe)':<25} | {'Dinh muc':<10} | {'So km':<10} | {'Nhien lieu':<12} | {'Chenh lech':<12} | {'Trang thai':<20} |")
+        print("-" * 115)
+        for vehicle in search_results:
+            print(f"| {vehicle['vehicle_id']:<10} | {vehicle['driver_plate']:<25} | {vehicle['norm']:<10.2f} | {vehicle['distance']:<10.2f} | {vehicle['fuel']:<12.2f} | {vehicle['difference']:<12.2f} | {vehicle['status']:<20} |")
+        print("-" * 115)
+
+def show_statistics():
+    print("\n--- THONG KE HIEU SUAT HAM DOI ---")
+    if len(fleet_list) == 0:
+        print("Danh sach doi xe hien dang trong. Khong co du lieu thong ke.")
+        return
+
+    stats_board = {
+        "Tiet kiem": 0,
+        "Tieu chuan": 0,
+        "Tieu hao cao": 0,
+        "Qua tai / That thoat": 0
     }
 
-    student_list.append(new_student)
-    print(f"\nĐã thêm thành công sinh viên {full_name} (Xếp loại: {classification}).")
+    for vehicle in fleet_list:
+        current_status = vehicle["status"]
+        if current_status in stats_board:
+            stats_board[current_status] += 1
 
-# 3. Cập nhật kết quả học tập
-def update_student_results():
-    print("\n--- CẬP NHẬT KẾT QUẢ HỌC TẬP ---")
-    student_id = input("Nhập mã sinh viên cần cập nhật: ").strip()
-    index = find_student_index(student_id)
+    for performance_group, count in stats_board.items():
+        print(f"Nhom {performance_group}: {count} phuong tien")
 
-    if index == -1:
-        print("Thông báo: Không tìm thấy sinh viên có mã này trong hệ thống.")
-        return
-
-    print("Nhập thông tin điểm mới:")
-    toan = input_valid_score("Toán")
-    ly = input_valid_score("Lý")
-    hoa = input_valid_score("Hóa")
-
-    dtb = calculate_average_score(toan, ly, hoa)
-    classification = classify_academic_performance(dtb)
-
-    sv = student_list[index]
-    sv["Toan"] = toan
-    sv["Ly"] = ly
-    sv["Hoa"] = hoa
-    sv["DTB"] = dtb
-    sv["XepLoai"] = classification
-
-    print("\nĐã cập nhật điểm và học lực thành công.")
-
-# 4. Xóa sinh viên
-def delete_student():
-    print("\n--- XÓA SINH VIÊN ---")
-    student_id = input("Nhập mã sinh viên cần xóa: ").strip()
-    index = find_student_index(student_id)
-
-    if index == -1:
-        print("Thông báo: Không tìm thấy sinh viên có mã này trong hệ thống.")
-        return
-
-    confirm = input("Bạn có chắc muốn xóa? (y/n): ").strip().lower()
-    if confirm == 'y':
-        deleted_student = student_list.pop(index)
-        print(f"Đã xóa thành công sinh viên {deleted_student['HoTen']} khỏi danh sách.")
-    else:
-        print("Hủy thao tác xóa.")
-
-# 5. Tìm kiếm sinh viên
-def search_student():
-    print("\n--- TÌM KIẾM SINH VIÊN ---")
-    keyword = input("Nhập mã sinh viên hoặc tên sinh viên cần tìm: ").strip().lower()
-
-    results = []
-    for sv in student_list:
-        if (keyword == sv["MaSV"].lower()) or (keyword in sv["HoTen"].lower()):
-            results.append(sv)
-
-    if results:
-        display_student_list(results)
-    else:
-        print("Thông báo: Không tìm thấy sinh viên phù hợp.")
-
-# 6. Thống kê điểm trung bình
-def calculate_statistics():
-    print("\n--- THỐNG KÊ HỌC LỰC ---")
-    if not student_list:
-        print("Danh sách sinh viên hiện đang trống, không thể thống kê.")
-        return
-
-    stats = {"Giỏi": 0, "Khá": 0, "Trung bình": 0, "Yếu": 0}
-
-    for sv in student_list:
-        stats[sv["XepLoai"]] += 1
-
-    print("Kết quả thống kê:")
-    print(f"- Sinh viên Giỏi       : {stats['Giỏi']}")
-    print(f"- Sinh viên Khá        : {stats['Khá']}")
-    print(f"- Sinh viên Trung bình : {stats['Trung bình']}")
-    print(f"- Sinh viên Yếu        : {stats['Yếu']}")
-#Hiển thị menu
-def print_menu():
-    print("\n" + "="*45)
-    print("   CHƯƠNG TRÌNH QUẢN LÝ SINH VIÊN RIKKEI")
-    print("="*45)
-    print("1. Hiển thị danh sách sinh viên")
-    print("2. Tiếp nhận sinh viên")
-    print("3. Cập nhật kết quả học tập")
-    print("4. Xóa sinh viên")
-    print("5. Tìm kiếm sinh viên")
-    print("6. Thống kê điểm trung bình")
-    print("7. Thoát chương trình")
-    print("="*45)
-def main_menu():
+def main():
     while True:
-        print_menu()
-        choice = input("Vui lòng chọn chức năng (1-7): ").strip()
-        if choice == '1':
-            display_student_list()
-        elif choice == '2':
-            add_new_student()
-        elif choice == '3':
-            update_student_results()
-        elif choice == '4':
-            delete_student()
-        elif choice == '5':
-            search_student()
-        elif choice == '6':
-            calculate_statistics()
-        elif choice == '7':
-            print("Cảm ơn bạn đã sử dụng chương trình. Tạm biệt!")
-            sys.exit()
+        print("\n" + "=" * 55)
+        print(" CHUONG TRINH QUAN LY HAM DOI XE - LOGISTICS")
+        print("=" * 55)
+        print("1. Hien thi danh sach doi xe")
+        print("2. Bo sung xe moi vao doi")
+        print("3. Cap nhat nhat ky hanh trinh")
+        print("4. Xoa xe khoi doi quan ly")
+        print("5. Tim kiem phuong tien")
+        print("6. Thong ke hieu suat ham doi")
+        print("8. Thoat chuong trinh")
+        print("=" * 55)
+
+        choice = input("Vui long nhap so chuc nang (1-6, 8): ").strip()
+
+        if choice == "1":
+            display_vehicles()
+        elif choice == "2":
+            add_vehicle()
+        elif choice == "3":
+            update_log()
+        elif choice == "4":
+            delete_vehicle()
+        elif choice == "5":
+            search_vehicle()
+        elif choice == "6":
+            show_statistics()
+        elif choice == "8":
+            print("\nCam on ban da su dung he thong quan ly. Tam biet!")
+            break
         else:
-            print("Lỗi: Lựa chọn không hợp lệ. Vui lòng nhập số từ 1 đến 7.")
+            print("\nLoi: Chuc nang khong hop le. Vui long chon lai!")
+
 if __name__ == "__main__":
-    main_menu()
-
-
-
-
+    main()
